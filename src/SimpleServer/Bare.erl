@@ -50,7 +50,7 @@ loop(State, HandleInfo, HandleContinue) ->
         {simpleReply, _Reply, _NewState} ->
           throw({reply_not_allowed, {cast, F}});
         {simpleStop, Reason, _NewState} ->
-          exit(simple_server_utilities:translate_stop_reason(Reason))
+          exit(translate_stop_reason(Reason))
       end;
     {call, F, From, Ref} ->
       case ((F(From))(State))() of
@@ -61,7 +61,7 @@ loop(State, HandleInfo, HandleContinue) ->
           From ! {simpleReply, Ref, Reply},
           handle_continue(Continue, NewState, HandleInfo, HandleContinue);
         {simpleCallStop, Reason, _NewState} ->
-          exit(simple_server_utilities:translate_stop_reason(Reason))
+          exit(translate_stop_reason(Reason))
       end;
     Message ->
       case ((HandleInfo(Message))(State))() of
@@ -70,7 +70,7 @@ loop(State, HandleInfo, HandleContinue) ->
         {simpleContinue, Continue, NewState} ->
           handle_continue(Continue, NewState, HandleInfo, HandleContinue);
         {simpleStop, Reason, _NewState} ->
-          exit(simple_server_utilities:translate_stop_reason(Reason))
+          exit(translate_stop_reason(Reason))
       end
   end.
 
@@ -81,7 +81,7 @@ handle_continue(Continue, State, HandleInfo, HandleContinue) ->
     {simpleContinue, NewContinue, NewState} ->
       handle_continue(NewContinue, NewState, HandleInfo, HandleContinue);
     {simpleStop, Reason, _NewState} ->
-      exit(simple_server_utilities:translate_stop_reason(Reason))
+      exit(translate_stop_reason(Reason))
   end.
 
 cast(PidOrNameReference, F) ->
@@ -96,7 +96,7 @@ call(Pid, F) ->
   end.
 
 send_message_to_name(PidOrNameReference, Message) ->
-  Name = simple_server_utilities:translate_process_reference(PidOrNameReference),
+  Name = translate_process_reference(PidOrNameReference),
   case get_name(Name) of
     Pid when is_pid(Pid) ->
       Pid ! Message;
@@ -132,3 +132,17 @@ translate_registration_result(false, _Pid) ->
   {left, {failed, unable_to_register}};
 translate_registration_result(no, _Pid) ->
   {left, {failed, unable_to_register}}.
+
+translate_process_reference({pidReference, Pid}) ->
+  Pid;
+translate_process_reference({nameReference, {local, Name}}) ->
+  Name;
+translate_process_reference({nameReference, Name}) ->
+  Name.
+
+translate_stop_reason({stopNormal}) ->
+  normal;
+translate_stop_reason({stopShutdown}) ->
+  shutdown;
+translate_stop_reason({stopOther, Reason}) ->
+  Reason.
