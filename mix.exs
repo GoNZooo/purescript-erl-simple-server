@@ -10,7 +10,7 @@ defmodule SimpleServer.MixProject do
       build_embedded: Mix.env() == :prod,
       deps: deps(),
       compilers: [:purerl | Mix.compilers()],
-      erlc_paths: ["erl_src", "output"]
+      erlc_paths: ["src/erl", "output"]
     ]
   end
 
