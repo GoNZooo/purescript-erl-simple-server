@@ -1,46 +1,52 @@
 -module(simpleServer_bare@foreign).
 
--export([startLink_/2, cast/2, call/2, serverLoop/3]).
+-export([startLink_/2, cast/2, call/2, serverLoop/4]).
 
 % `name` is either `{nothing}` or `{just, Name}` where `Name` is
 % `{local, Name}`, `{global, Name}`, or `{via, Module, Name}`.
 startLink_(StartArguments,
            #{init := Init,
              handleInfo := HandleInfo,
+             handleContinue := HandleContinue,
              name := {nothing}}) ->
   fun() ->
-     Pid = spawn_link(?MODULE, serverLoop, [StartArguments, Init, HandleInfo]),
+     Pid = spawn_link(?MODULE, serverLoop, [StartArguments, Init, HandleInfo, HandleContinue]),
      {right, Pid}
   end;
 startLink_(StartArguments,
            #{init := Init,
              handleInfo := HandleInfo,
+             handleContinue := HandleContinue,
              name := {just, Name}}) ->
   fun() ->
      MaybePid = get_name(Name),
      case MaybePid of
        Pid when is_pid(Pid) -> {left, {alreadyStarted, Pid}};
        undefined ->
-         Pid = spawn_link(?MODULE, serverLoop, [StartArguments, Init, HandleInfo]),
+         Pid = spawn_link(?MODULE, serverLoop, [StartArguments, Init, HandleInfo, HandleContinue]),
          RegistrationResult = try_register(Name, Pid),
          translate_registration_result(RegistrationResult, Pid)
      end
   end.
 
-serverLoop(StartArguments, Init, HandleInfo) ->
+serverLoop(StartArguments, Init, HandleInfo, HandleContinue) ->
   case (Init(StartArguments))() of
     {simpleInitOk, State} ->
-      loop(State, HandleInfo);
+      loop(State, HandleInfo, HandleContinue);
+    {simpleInitContinue, State, Continue} ->
+      handle_continue(Continue, State, HandleInfo, HandleContinue);
     {simpleInitError, Foreign} ->
       exit({simpleInitError, Foreign})
   end.
 
-loop(State, HandleInfo) ->
+loop(State, HandleInfo, HandleContinue) ->
   receive
     {cast, F} ->
       case (F(State))() of
         {simpleNoReply, NewState} ->
-          loop(NewState, HandleInfo);
+          loop(NewState, HandleInfo, HandleContinue);
+        {simpleContinue, Continue, NewState} ->
+          handle_continue(Continue, NewState, HandleInfo, HandleContinue);
         {simpleReply, _Reply, _NewState} ->
           throw({reply_not_allowed, {cast, F}});
         {simpleStop, Reason, _NewState} ->
@@ -48,23 +54,34 @@ loop(State, HandleInfo) ->
       end;
     {call, F, From, Ref} ->
       case ((F(From))(State))() of
-        {simpleReply, Reply, NewState} ->
+        {simpleCallReply, Reply, NewState} ->
           From ! {simpleReply, Ref, Reply},
-          loop(NewState, HandleInfo);
-        {simpleNoReply, _NewState} ->
-          throw({reply_required, {call, F, From, Ref}});
-        {simpleStop, Reason, _NewState} ->
+          loop(NewState, HandleInfo, HandleContinue);
+        {simpleCallReplyContinue, Reply, NewState, Continue} ->
+          From ! {simpleReply, Ref, Reply},
+          handle_continue(Continue, NewState, HandleInfo, HandleContinue);
+        {simpleCallStop, Reason, _NewState} ->
           exit(simple_server_utilities:translate_stop_reason(Reason))
       end;
     Message ->
       case ((HandleInfo(Message))(State))() of
         {simpleNoReply, NewState} ->
-          loop(NewState, HandleInfo);
-        {simpleReply, _Reply, _NewState} ->
-          throw({reply_not_allowed, Message});
+          loop(NewState, HandleInfo, HandleContinue);
+        {simpleContinue, Continue, NewState} ->
+          handle_continue(Continue, NewState, HandleInfo, HandleContinue);
         {simpleStop, Reason, _NewState} ->
           exit(simple_server_utilities:translate_stop_reason(Reason))
       end
+  end.
+
+handle_continue(Continue, State, HandleInfo, HandleContinue) ->
+  case ((HandleContinue(Continue))(State))() of
+    {simpleNoReply, NewState} ->
+      loop(NewState, HandleInfo, HandleContinue);
+    {simpleContinue, NewContinue, NewState} ->
+      handle_continue(NewContinue, NewState, HandleInfo, HandleContinue);
+    {simpleStop, Reason, _NewState} ->
+      exit(simple_server_utilities:translate_stop_reason(Reason))
   end.
 
 cast(PidOrNameReference, F) ->
@@ -92,7 +109,9 @@ get_name({local, Name}) ->
 get_name({global, Name}) ->
   global:whereis_name(Name);
 get_name({via, Module, Name}) ->
-  Module:whereis(Name).
+  Module:whereis(Name);
+get_name(Name) when is_atom(Name) ->
+  whereis(Name).
 
 try_register({local, Name}, Pid) ->
   register(Name, Pid);
