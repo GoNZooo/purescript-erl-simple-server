@@ -18,6 +18,7 @@ module SimpleServer.Types
 
 import Data.Maybe (Maybe)
 import Erl.Process (Process, ProcessM)
+import Erl.Process.Raw (class HasPid, getPid)
 import Foreign (Foreign)
 import Foreign as Foreign
 import Pinto.Types (RegistryName)
@@ -31,6 +32,9 @@ type StartLinkArguments arguments message state continue =
 
 newtype ServerPid :: forall s c. Type -> s -> c -> Type
 newtype ServerPid message state continue = ServerPid (Process message)
+
+instance HasPid (ServerPid message state continue) where
+  getPid (ServerPid p) = getPid p
 
 data ProcessReference :: forall s c. Type -> s -> c -> Type
 data ProcessReference message state continue
