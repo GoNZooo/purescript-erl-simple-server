@@ -20,7 +20,7 @@ import SimpleServer.Test.Counter.Types (Arguments, Continue(..), Message(..), Pi
 serverName :: RegistryName Pid
 serverName = "SimpleServer.Test.Counter" # Atom.atom # Local
 
-startLink :: Arguments -> Effect (StartLinkResult (Process Message))
+startLink :: Arguments -> Effect (StartLinkResult Pid)
 startLink arguments = do
   SimpleServer.startLink arguments { name: Just serverName, init, handleInfo, handleContinue }
 

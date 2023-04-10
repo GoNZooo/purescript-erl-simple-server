@@ -33,7 +33,7 @@ startLink
   :: forall arguments message state continue
    . arguments
   -> StartLinkArguments arguments message state continue
-  -> Effect (StartLinkResult (Process message))
+  -> Effect (StartLinkResult (ServerPid message state continue))
 startLink startArguments arguments = do
   startLink_ startArguments arguments
 
@@ -41,7 +41,7 @@ foreign import startLink_
   :: forall arguments message state continue
    . arguments
   -> StartLinkArguments arguments message state continue
-  -> Effect (StartLinkResult (Process message))
+  -> Effect (StartLinkResult (ServerPid message state continue))
 
 foreign import cast
   :: forall message state continue
