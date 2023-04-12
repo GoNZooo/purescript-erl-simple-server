@@ -30,27 +30,27 @@ import SimpleServer.Types
 import SimpleServer.Utilities (self, sendSelf)
 
 startLink
-  :: forall arguments message state continue
+  :: forall arguments message state continue stop
    . arguments
-  -> StartLinkArguments arguments message state continue
-  -> Effect (StartLinkResult (ServerPid message state continue))
+  -> StartLinkArguments arguments message state continue stop
+  -> Effect (StartLinkResult (ServerPid message state continue stop))
 startLink startArguments arguments = do
   startLink_ startArguments arguments
 
 foreign import startLink_
-  :: forall arguments message state continue
+  :: forall arguments message state continue stop
    . arguments
-  -> StartLinkArguments arguments message state continue
-  -> Effect (StartLinkResult (ServerPid message state continue))
+  -> StartLinkArguments arguments message state continue stop
+  -> Effect (StartLinkResult (ServerPid message state continue stop))
 
 foreign import cast
-  :: forall message state continue
-   . ProcessReference message state continue
-  -> (state -> ProcessM message (ReturnValue state continue))
+  :: forall message state continue stop
+   . ProcessReference message state continue stop
+  -> (state -> ProcessM message (ReturnValue state continue stop))
   -> Effect Unit
 
 foreign import call
-  :: forall message state a continue
-   . ProcessReference message state continue
-  -> ((Process a) -> state -> ProcessM message (Reply a state continue))
+  :: forall message state a continue stop
+   . ProcessReference message state continue stop
+  -> ((Process a) -> state -> ProcessM message (Reply a state continue stop))
   -> Effect a

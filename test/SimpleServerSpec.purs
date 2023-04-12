@@ -4,10 +4,13 @@ module Test.SimpleServerSpec
 
 import Prelude
 
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
+import Erl.Atom (Atom)
 import Erl.Atom as Atom
 import Erl.Kernel.Application as Application
+import Erl.Process (Process)
 import Erl.Process as Process
 import PurerlTest (assertEqual, runSuites, suite, test)
 import SimpleServer.Test.BareCounter as BareCounter
@@ -41,6 +44,15 @@ main = do
         count4 <- liftEffect TestCounter.currentCount
         count4 `assertEqual` 11
 
+        -- shut down the server and wait for `terminate` to be called
+        -- `terminate` for the counter process sends back a message with
+        -- whichever atom we've specified in `TestCounter.shutdown` so we can
+        -- verify that we have indeed run `terminate`
+        self <- liftEffect selfPid
+        liftEffect $ TestCounter.shutdown self (Atom.atom "our_test_atom")
+        result <- liftEffect receiveAtom
+        result `assertEqual` Just (Atom.atom "our_test_atom")
+
     suite "SimpleServer.Test.BareCounter" do
       test "goes through correct flow of events" do
         count <- liftEffect BareCounter.currentCount
@@ -62,3 +74,14 @@ main = do
         count4 <- liftEffect BareCounter.currentCount
         count4 `assertEqual` 11
 
+        -- shut down the server and wait for `terminate` to be called
+        -- `terminate` for the counter process sends back a message with
+        -- whichever atom we've specified in `TestCounter.shutdown` so we can
+        -- verify that we have indeed run `terminate`
+        self <- liftEffect selfPid
+        liftEffect $ BareCounter.shutdown self (Atom.atom "our_test_atom")
+        result <- liftEffect receiveAtom
+        result `assertEqual` Just (Atom.atom "our_test_atom")
+
+foreign import receiveAtom :: Effect (Maybe Atom)
+foreign import selfPid :: forall a. Effect (Process a)
