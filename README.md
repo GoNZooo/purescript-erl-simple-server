@@ -142,6 +142,10 @@ type Pid = ServerPid Message State Continue Stop
 
 ## Features not implemented (yet)
 
+### Hibernate
+
+Functionality for explicitly hibernating has not been implemented yet.
+
 ### Your suggestions
 
 Leave a suggestion for what you need implemented here.
