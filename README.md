@@ -140,11 +140,22 @@ type Arguments = { initialCount :: Int }
 type Pid = ServerPid Message State Continue Stop
 ```
 
+## Running tests
+
+Run `mix purerl.test` in the root of the project:
+
+```bash
+$ mix purerl.test
+PurerlEx: assuming the project root is `/home/gonz/code/purescript/simple-server`
+PurerlEx: no non-dep files changed; skipping running spago to save time.
+🧪 SimpleServer.Test.BareCounter
+  1/1 successes
+🧪 SimpleServer.Test.Counter
+  1/1 successes
+🎉 All done!
+```
+
 ## Features not implemented (yet)
-
-### Hibernate
-
-Functionality for explicitly hibernating has not been implemented yet.
 
 ### Your suggestions
 
