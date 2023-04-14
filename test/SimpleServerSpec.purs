@@ -79,6 +79,11 @@ main = do
         count4 <- liftEffect BareCounter.currentCount
         count4 `assertEqual` 11
 
+        -- Try to hibernate the server and check that it is indeed hibernating
+        liftEffect BareCounter.hibernate
+        counterIsHibernating <- liftEffect $ isHibernating counterPid
+        assert counterIsHibernating
+
         -- shut down the server and wait for `terminate` to be called
         -- `terminate` for the counter process sends back a message with
         -- whichever atom we've specified in `TestCounter.shutdown` so we can

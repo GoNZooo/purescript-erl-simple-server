@@ -5,6 +5,7 @@ module SimpleServer.Test.BareCounter
   , startPhase1Cast
   , getPid
   , shutdown
+  , hibernate
   ) where
 
 import Prelude
@@ -65,6 +66,11 @@ shutdown pid stopAtom = SimpleServer.cast (NameReference serverName) \state ->
 startPhase1Cast :: Effect Unit
 startPhase1Cast = SimpleServer.cast (NameReference serverName) \state ->
   pure $ SimpleServer.continue Phase1 state
+
+-- | This is a call just so we synchronize execution with the caller
+hibernate :: Effect Unit
+hibernate = SimpleServer.call (NameReference serverName) \_from state ->
+  pure $ SimpleServer.replyAndHibernate state unit
 
 handleInfo :: Message -> State -> ProcessM Message (ReturnValue State Continue Stop)
 handleInfo StartPhase1 state =
