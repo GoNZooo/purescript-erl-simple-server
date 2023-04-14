@@ -172,6 +172,11 @@ PurerlEx: no non-dep files changed; skipping running spago to save time.
 
 ## Features not implemented (yet)
 
+### `reply` after `noreply` in `call`
+
+`noreply` isn't yet supported in `handleCall`. The reason for this isn't that it's hard to do, but
+that it's just not something I've needed and think that you should be doing.
+
 ### Your suggestions
 
 Leave a suggestion for what you need implemented here.
