@@ -128,7 +128,9 @@ handle_info(Message, #state{state = State, handleInfo = HandleInfo} = ServerStat
     {simpleStop, Reason, NewState} ->
       {stop,
        translate_stop_reason(Reason),
-       ServerState#state{state = NewState, specified_stop_reason = Reason}}
+       ServerState#state{state = NewState, specified_stop_reason = Reason}};
+    {simpleHibernate, NewState} ->
+      {noreply, ServerState#state{state = NewState}, hibernate}
   end.
 
 handle_continue(Continue,
