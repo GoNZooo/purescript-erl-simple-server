@@ -13,6 +13,9 @@ recreate the subset of Pinto qualities that I needed in this library:
 - Known process types (`Process Message`) to provide pids that can be interacted safely with
 - Easy-to-use functions for `cast`, `call` and `info` callbacks
 
+The result is a set of bindings that instead present an overhead of about 1.4 times that of
+Erlang/Elixir versions, but with the added benefit of type safety.
+
 ## Basic usage
 
 ### `gen_server`
