@@ -15,7 +15,7 @@ selfPid() ->
   fun() -> self() end.
 
 isHibernating(Pid) ->
-  fun() -> check_hibernate_with_timeout(Pid, 1000) end.
+  fun() -> check_hibernate_with_timeout(Pid, 250) end.
 
 get_hibernation_status(Pid) ->
   case process_info(Pid, current_function) of
