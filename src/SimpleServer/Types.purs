@@ -8,12 +8,17 @@ module SimpleServer.Types
   , StopReason(..)
   , noReply
   , continue
+  , stop
+  , hibernate
   , reply
   , replyAndStop
-  , stop
+  , replyAndContinue
+  , replyAndHibernate
   , initOk
   , initContinue
   , initError
+  , initStop
+  , initHibernate
   ) where
 
 import Prelude
@@ -49,21 +54,24 @@ data InitValue state continue stop
   | SimpleInitContinue state continue
   | SimpleInitStop (StopReason stop) state
   | SimpleInitError Foreign
+  | SimpleInitHibernate state
 
 data ReturnValue state continue stop
   = SimpleNoReply state
   | SimpleContinue continue state
   | SimpleStop (StopReason stop) state
-
-data StopReason stop
-  = StopNormal
-  | StopShutdown (Maybe stop)
-  | StopOther Foreign
+  | SimpleHibernate state
 
 data Reply a state continue stop
   = SimpleCallReply a state
   | SimpleCallReplyContinue a state continue
   | SimpleCallStop a (StopReason stop) state
+  | SimpleCallHibernate a state
+
+data StopReason stop
+  = StopNormal
+  | StopShutdown (Maybe stop)
+  | StopOther Foreign
 
 noReply :: forall state continue stop. state -> ReturnValue state continue stop
 noReply state = SimpleNoReply state
@@ -71,15 +79,25 @@ noReply state = SimpleNoReply state
 continue :: forall state continue stop. continue -> state -> ReturnValue state continue stop
 continue continue' state = SimpleContinue continue' state
 
-reply :: forall state a continue stop. state -> a -> Reply a state continue stop
-reply state reply' = SimpleCallReply reply' state
-
 stop :: forall state continue stop. StopReason stop -> state -> ReturnValue state continue stop
 stop reason state = SimpleStop reason state
+
+hibernate :: forall state continue stop. state -> ReturnValue state continue stop
+hibernate state = SimpleHibernate state
+
+reply :: forall state a continue stop. state -> a -> Reply a state continue stop
+reply state reply' = SimpleCallReply reply' state
 
 replyAndStop
   :: forall state a continue stop. state -> StopReason stop -> a -> Reply a state continue stop
 replyAndStop state reason reply' = SimpleCallStop reply' reason state
+
+replyAndContinue
+  :: forall state a continue stop. state -> a -> continue -> Reply a state continue stop
+replyAndContinue state reply' continue' = SimpleCallReplyContinue reply' state continue'
+
+replyAndHibernate :: forall state a continue stop. state -> a -> Reply a state continue stop
+replyAndHibernate state reply' = SimpleCallHibernate reply' state
 
 initOk :: forall state continue stop. state -> InitValue state continue stop
 initOk state = SimpleInitOk state
@@ -90,3 +108,8 @@ initContinue continue' state = SimpleInitContinue state continue'
 initError :: forall state a continue stop. a -> InitValue state continue stop
 initError value = SimpleInitError (Foreign.unsafeToForeign value)
 
+initStop :: forall state continue stop. StopReason stop -> state -> InitValue state continue stop
+initStop reason state = SimpleInitStop reason state
+
+initHibernate :: forall state continue stop. state -> InitValue state continue stop
+initHibernate state = SimpleInitHibernate state

@@ -14,18 +14,23 @@ import Pinto.Types (StartLinkResult)
 import SimpleServer.Types
   ( InitValue
   , ProcessReference(..)
-  , StopReason(..)
   , Reply
   , ReturnValue
   , ServerPid
   , StartLinkArguments
-  , initError
-  , initContinue
-  , initOk
-  , noReply
+  , StopReason(..)
   , continue
-  , reply
+  , hibernate
+  , initContinue
+  , initError
+  , initOk
+  , initHibernate
+  , noReply
   , stop
+  , reply
+  , replyAndStop
+  , replyAndContinue
+  , replyAndHibernate
   )
 import SimpleServer.Utilities (self, sendSelf)
 

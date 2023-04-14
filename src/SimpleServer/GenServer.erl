@@ -76,7 +76,47 @@ init({StartArguments, Init, HandleInfo, HandleContinue, Terminate}) ->
               terminate = Terminate},
        {continue, Continue}};
     {simpleInitError, Foreign} ->
-      {stop, Foreign}
+      {stop, Foreign};
+    {simpleInitStop, Reason, State} ->
+      {stop,
+       translate_stop_reason(Reason),
+       #state{specified_stop_reason = Reason, state = State}};
+    {simpleInitHibernate, State} ->
+      {ok,
+       #state{state = State,
+              handleInfo = HandleInfo,
+              handleContinue = HandleContinue,
+              terminate = Terminate},
+       hibernate}
+  end.
+
+handle_cast({cast, F}, #state{state = State} = ServerState) ->
+  case (F(State))() of
+    {simpleNoReply, NewState} ->
+      {noreply, ServerState#state{state = NewState}};
+    {simpleContinue, Continue, NewState} ->
+      {noreply, ServerState#state{state = NewState}, {continue, Continue}};
+    {simpleStop, Reason, NewState} ->
+      {stop,
+       translate_stop_reason(Reason),
+       ServerState#state{state = NewState, specified_stop_reason = Reason}};
+    {simpleHibernate, NewState} ->
+      {noreply, ServerState#state{state = NewState}, hibernate}
+  end.
+
+handle_call({call, F}, From, #state{state = State} = ServerState) ->
+  case ((F(From))(State))() of
+    {simpleCallReply, Reply, NewState} ->
+      {reply, Reply, ServerState#state{state = NewState}};
+    {simpleCallReplyContinue, Reply, NewState, Continue} ->
+      {reply, Reply, ServerState#state{state = NewState}, {continue, Continue}};
+    {simpleCallStop, Reply, Reason, NewState} ->
+      {stop,
+       translate_stop_reason(Reason),
+       Reply,
+       ServerState#state{state = NewState, specified_stop_reason = Reason}};
+    {simpleCallHibernate, Reply, NewState} ->
+      {reply, Reply, ServerState#state{state = NewState}, hibernate}
   end.
 
 handle_info(Message, #state{state = State, handleInfo = HandleInfo} = ServerState) ->
@@ -101,30 +141,9 @@ handle_continue(Continue,
     {simpleStop, Reason, NewState} ->
       {stop,
        translate_stop_reason(Reason),
-       ServerState#state{state = NewState, specified_stop_reason = Reason}}
-  end.
-
-handle_cast({cast, F}, #state{state = State} = ServerState) ->
-  case (F(State))() of
-    {simpleNoReply, NewState} ->
-      {noreply, ServerState#state{state = NewState}};
-    {simpleContinue, Continue, NewState} ->
-      {noreply, ServerState#state{state = NewState}, {continue, Continue}};
-    {simpleStop, Reason, NewState} ->
-      {stop,
-       translate_stop_reason(Reason),
-       ServerState#state{state = NewState, specified_stop_reason = Reason}}
-  end.
-
-handle_call({call, F}, From, #state{state = State} = ServerState) ->
-  case ((F(From))(State))() of
-    {simpleCallReply, Reply, NewState} ->
-      {reply, Reply, ServerState#state{state = NewState}};
-    {simpleCallStop, Reply, Reason, NewState} ->
-      {stop,
-       translate_stop_reason(Reason),
-       Reply,
-       ServerState#state{state = NewState, specified_stop_reason = Reason}}
+       ServerState#state{state = NewState, specified_stop_reason = Reason}};
+    {simpleHibernate, NewState} ->
+      {noreply, ServerState#state{state = NewState}, hibernate}
   end.
 
 translate_process_reference({pidReference, Pid}) ->

@@ -1,6 +1,6 @@
 -module(test_simpleServerSpec@foreign).
 
--export([receiveAtom/0, selfPid/0]).
+-export([receiveAtom/0, selfPid/0, isHibernating/1]).
 
 receiveAtom() ->
   fun() ->
@@ -13,3 +13,11 @@ receiveAtom() ->
 
 selfPid() ->
   fun() -> self() end.
+
+isHibernating(Pid) ->
+  fun() ->
+     case process_info(Pid, current_function) of
+       {current_function, {erlang, hibernate, 3}} -> true;
+       _ -> false
+     end
+  end.

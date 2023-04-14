@@ -12,7 +12,7 @@ import Erl.Atom as Atom
 import Erl.Kernel.Application as Application
 import Erl.Process (Process)
 import Erl.Process as Process
-import PurerlTest (assertEqual, runSuites, suite, test)
+import PurerlTest (assert, assertEqual, runSuites, suite, test)
 import SimpleServer.Test.BareCounter as BareCounter
 import SimpleServer.Test.BareCounter.Types as BareCounterTypes
 import SimpleServer.Test.Counter as TestCounter
@@ -43,6 +43,11 @@ main = do
         TestCounterTypes.StartPhase1 # Process.send counterPid # liftEffect
         count4 <- liftEffect TestCounter.currentCount
         count4 `assertEqual` 11
+
+        -- Try to hibernate the server and check that it is indeed hibernating
+        liftEffect TestCounter.hibernate
+        counterIsHibernating <- liftEffect $ isHibernating counterPid
+        assert counterIsHibernating
 
         -- shut down the server and wait for `terminate` to be called
         -- `terminate` for the counter process sends back a message with
@@ -85,3 +90,4 @@ main = do
 
 foreign import receiveAtom :: Effect (Maybe Atom)
 foreign import selfPid :: forall a. Effect (Process a)
+foreign import isHibernating :: forall a. Process a -> Effect Boolean
