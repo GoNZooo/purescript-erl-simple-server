@@ -22,10 +22,15 @@ import SimpleServer.Types
   , initError
   , initContinue
   , initOk
+  , initHibernate
   , noReply
-  , continue
-  , reply
   , stop
+  , continue
+  , hibernate
+  , reply
+  , replyAndStop
+  , replyAndContinue
+  , replyAndHibernate
   )
 import SimpleServer.Utilities (self, sendSelf)
 

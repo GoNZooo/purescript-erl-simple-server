@@ -1,6 +1,6 @@
 -module(simpleServer_bare@foreign).
 
--export([startLink_/2, cast/2, call/2, serverLoop/5]).
+-export([startLink_/2, cast/2, call/2, serverLoop/5, loop/4]).
 
 % `name` is either `{nothing}` or `{just, Name}` where `Name` is
 % `{local, Name}`, `{global, Name}`, or `{via, Module, Name}`.
@@ -55,10 +55,10 @@ loop(State, HandleInfo, HandleContinue, Terminate) ->
           loop(NewState, HandleInfo, HandleContinue, Terminate);
         {simpleContinue, Continue, NewState} ->
           handle_continue(Continue, NewState, HandleInfo, HandleContinue, Terminate);
-        {simpleReply, _Reply, _NewState} ->
-          throw({reply_not_allowed, {cast, F}});
         {simpleStop, Reason, NewState} ->
-          terminate(Reason, NewState, Terminate)
+          terminate(Reason, NewState, Terminate);
+        {simpleHibernate, NewState} ->
+          erlang:hibernate(?MODULE, loop, [NewState, HandleInfo, HandleContinue, Terminate])
       end;
     {call, F, From, Ref} ->
       case ((F(From))(State))() of
@@ -69,7 +69,10 @@ loop(State, HandleInfo, HandleContinue, Terminate) ->
           From ! {simpleReply, Ref, Reply},
           handle_continue(Continue, NewState, HandleInfo, HandleContinue, Terminate);
         {simpleCallStop, Reason, NewState} ->
-          terminate(Reason, NewState, Terminate)
+          terminate(Reason, NewState, Terminate);
+        {simpleCallHibernate, Reply, NewState} ->
+          From ! {simpleReply, Ref, Reply},
+          erlang:hibernate(?MODULE, loop, [NewState, HandleInfo, HandleContinue, Terminate])
       end;
     Message ->
       case ((HandleInfo(Message))(State))() of
@@ -78,7 +81,9 @@ loop(State, HandleInfo, HandleContinue, Terminate) ->
         {simpleContinue, Continue, NewState} ->
           handle_continue(Continue, NewState, HandleInfo, HandleContinue, Terminate);
         {simpleStop, Reason, NewState} ->
-          terminate(Reason, NewState, Terminate)
+          terminate(Reason, NewState, Terminate);
+        {simpleHibernate, NewState} ->
+          erlang:hibernate(?MODULE, loop, [NewState, HandleInfo, HandleContinue, Terminate])
       end
   end.
 

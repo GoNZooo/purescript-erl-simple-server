@@ -13,7 +13,7 @@ import SimpleServer.GenServer (ServerPid)
 
 data Stop = StopWithAtom (Process Atom) Atom
 
-data Message = StartPhase1
+data Message = StartPhase1 | Hibernate
 
 data Continue
   = Phase1
